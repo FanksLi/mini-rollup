@@ -3,73 +3,48 @@ const path = require('path');
 const Module = require('./module');
 const MagicString = require('magic-string');
 
-class Bundle{
-    constructor({entry}) {
-        this.entry = entry;
+class Bundle {
+    constructor({ entry }) {
+        this.entryPath = entry.replace(/\.js$/, '') + '.js';
+        this.modules = [];
     }
+
     /**
      * 读取模块
-     * @param {*} importee 被调用者
+     * @param {*} importee 被调用着
      * @param {*} importer 调用者
-     * @description main.js import foo.js    importee foo , importer main.js
      */
     fetchModule(importee, importer) {
-        // 路径计算
-        let route
-        if (!importer) {
+        let router;
+
+        if(importer) {
             // 主模块
-            route = importee
+            router = importer;
         } else {
-            // 计算相对于importer的路径
-            // 绝对路径 '/abc/abc'
-            // 相对路径 '../abc'
-            if (path.isAbsolute(importee)) {
-                router = importee
+
+            if(path.isAbsolute(importee)) {
+                router = importee;
             } else {
-                // 相对路径
-                route = path.resolve(
+                
+                 // 相对路径
+                 router = path.resolve(
                     path.dirname(importer),
                     importee.replace(/\.js$/, '') + '.js'
                 )
             }
         }
 
-        if (route) {
-            // 读取代码
-            const code = fs.readFileSync(route, 'utf-8').toString()
-            // console.log('code:', code)
+        if(router) {
+            const code = fs.readFileSync(router, 'utf-8').toString();
             const module = new Module({
                 code,
-                path: route,
-                bundle: this // 上下文
-            })
-            return module
+                path: router,
+                bundle: this,
+            });
+
+            return module;
         }
     }
-
-    build(outputFileName) {
-        const entry = this.fetchModule(this.entry);
-        this.statements = entry.expandAllStatement();
-
-        const {code} = this.generate();
-        fs.writeFileSync(outputFileName, code);
-    }
-
-    generate() {
-        const magicString = new MagicString.Bundle()
-        this.statements.forEach(statement => {
-            const source = statement._source.clone()
-
-            // export const a = 1 =>  const a = 1
-            if (statement.type === 'ExportNamedDeclaration') {
-                source.remove(statement.start, statement.declaration.start)
-            }
-            magicString.addSource({
-                content: source,
-                separator: '\n'
-            })
-        })
-        return { code: magicString.toString() } 
-    }
 }
+
 module.exports = Bundle;
