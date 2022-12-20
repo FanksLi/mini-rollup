@@ -38,7 +38,7 @@ a();`);
         });
         test('多模块语句', () => {
             const bundle = new Bundle({ entry: 'index.js'});
-            fs.readFileSync.mockReturnValueOnce(`import {a} from './a';
+            fs.readFileSync.mockReturnValueOnce(`import {a} from './a.js';
 a();`).mockReturnValueOnce('export const a = () => 1;');
             fs.writeFileSync.mock.calls = [];
             bundle.build('bundle.js');
